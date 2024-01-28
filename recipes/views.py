@@ -8,7 +8,6 @@ from .models import Product, Recipe, RecipeIngredient
 
 @require_GET
 def add_product_to_recipe(request):
-    # http://127.0.0.1:8000/add/?recipe_id=1&product_id=5&weight=200
     try:
         recipe_id = request.GET.get('recipe_id')
         product_id = request.GET.get('product_id')
