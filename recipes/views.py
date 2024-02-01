@@ -1,7 +1,7 @@
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
 from django.views.decorators.http import require_GET
-from django.db.models import Q
+from django.db.models import F, Q
 from django.db import transaction
 
 from .models import Product, Recipe, RecipeIngredient
@@ -42,14 +42,9 @@ def cook_recipe(request, recipe_id):
     try:
         with transaction.atomic():
             recipe = get_object_or_404(Recipe.objects.prefetch_related('ingredients'), id=recipe_id)
-            recipe_ingredients = recipe.ingredients.all()
-            upd_list = []
-
-            for r_ingredient in recipe_ingredients:
-                r_ingredient.ingredient.usage_count += 1
-                upd_list.append(r_ingredient.ingredient)
-            Product.objects.bulk_update(upd_list, ['usage_count'])
-        return JsonResponse({'message': 'Counts for each product used in recipe was successfully incremented.'})
+            recipe_ingredients_ids = recipe.ingredients.values_list('ingredient_id', flat=True)
+            Product.objects.filter(id__in=recipe_ingredients_ids).update(usage_count=F('usage_count') + 1)
+            return JsonResponse({'message': 'Counts for each product used in recipe was successfully incremented.'})
     except Exception as e:
         return JsonResponse({'message': 'Error while updating counts: ' + str(e)}, status=500)
 
