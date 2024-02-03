@@ -1,7 +1,7 @@
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
 from django.views.decorators.http import require_GET
-from django.db.models import F, Q
+from django.db.models import F, Exists, OuterRef
 from django.db import transaction
 
 from .models import Product, Recipe, RecipeIngredient
@@ -52,7 +52,8 @@ def cook_recipe(request, recipe_id):
 @require_GET
 def show_recipes_without_product(request, product_id):
     filtered_recipes = Recipe.objects.exclude(
-        Q(ingredients__ingredient=product_id) &
-        Q(ingredients__weight__gt=9)
-    ).distinct()
+        Exists(RecipeIngredient.objects.filter(
+            recipe=OuterRef('pk'),
+            ingredient_id=product_id,
+            weight__gt=9)))
     return render(request, 'recipes/filter-tab.html', {'filtered_recipes': filtered_recipes})
